@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<context>
+	<Resource name="jdbc" auth="Container"
+		type="javax.sql.DataSource"
+		driverClassName="oracle.jdbc.driver.OracleDriver"
+		url="jdbc:oracle:thin:ono@//localhost:1521/xe" username="ono"
+		password="password" />
+</context>
