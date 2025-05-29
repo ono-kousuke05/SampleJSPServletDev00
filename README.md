@@ -1,0 +1,2 @@
+# SampleJSPServletDev00
+サーブレット課題の新人研修用のリポジトリ
