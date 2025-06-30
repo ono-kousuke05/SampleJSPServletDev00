@@ -1,14 +1,11 @@
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.naming.InitialContext;
 import javax.sql.DataSource;
-
 import bean.EmployeeBean;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
@@ -25,9 +22,6 @@ public class Sales extends HttpServlet {
             HttpServletResponse response) throws ServletException, IOException {
         // 文字コードの指定
         response.setContentType("text/plain; charset=UTF-8");
-        // 表示テスト
-        PrintWriter out = response.getWriter();
-        out.println("Salesクラスは正常に作動しています");
         // 表で使用するデータを格納するリストの定義
         List<EmployeeBean> salesList = new ArrayList<EmployeeBean>();
         try {

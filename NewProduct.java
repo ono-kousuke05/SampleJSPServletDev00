@@ -14,6 +14,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 /**
  * @author kousu
@@ -24,12 +25,15 @@ public class NewProduct extends HttpServlet {
 
     String messageOfNameCheck = null;
 
+    /**
+     *データベースから取得した情報を保持して、"JSP"に遷移するGetメソッド。
+     */
     public void doGet(HttpServletRequest request,
             HttpServletResponse response) throws ServletException, IOException {
         // 文字コードの指定
         response.setContentType("text/plain; charset=UTF-8");
         // 動的配列を作成
-        List<CategoryBean> CategoryList = new ArrayList<CategoryBean>();
+        List<CategoryBean> categoryList = new ArrayList<CategoryBean>();
         // 最新のIDをdoGetのスコープで定義
         int newId = 0;
 
@@ -39,46 +43,50 @@ public class NewProduct extends HttpServlet {
             DataSource ds = (DataSource) ic.lookup("java:/comp/env/jdbc");
             Connection con = ds.getConnection();
             // SQL文を構築
-            String sql = "SELECT A.CATEGORYID AS カテゴリーID , A.CATEGORYNAME AS カテゴリー名　" // +",B.PRODUCTID AS 商品ID "
+            String sqlCategory = "SELECT A.CATEGORYID AS カテゴリーID , A.CATEGORYNAME AS カテゴリー名　"
                     + "FROM CATEGORIES A JOIN PRODUCTS B ON A.CATEGORYID = B.CATEGORYID "
                     + "GROUP BY A.CATEGORYID,A.CATEGORYNAME ORDER BY A.CATEGORYID";
             // SQL文を実行
-            PreparedStatement st = con.prepareStatement(sql);
-            ResultSet rs = st.executeQuery();
+            PreparedStatement stCategory = con.prepareStatement(sqlCategory);
+            ResultSet rsCategory = stCategory.executeQuery();
             // 実行結果を格納
-            while (rs.next()) {
-                CategoryBean categorybean = new CategoryBean();
+            while (rsCategory.next()) {
+                CategoryBean categoryBean = new CategoryBean();
                 // SQLで取得した情報をセットしていく
-                categorybean.setCategoryID(rs.getInt("カテゴリーID"));
-                categorybean.setCategoryName(rs.getString("カテゴリー名"));
+                categoryBean.setCategoryID(rsCategory.getInt("カテゴリーID"));
+                categoryBean.setCategoryName(rsCategory.getString("カテゴリー名"));
                 // 配列に追加
-                CategoryList.add(categorybean);
+                categoryList.add(categoryBean);
             }
             // SQL文を構築
-            String sql2 = "SELECT MAX(PRODUCTID)+1 AS 最新ID " + "FROM PRODUCTS "
+            String sqlNewId = "SELECT MAX(PRODUCTID)+1 AS 最新ID " + "FROM PRODUCTS "
                     + "ORDER BY CATEGORYID";
             // SQL文を実行
-            PreparedStatement st2 = con.prepareStatement(sql2);
-            ResultSet rs2 = st2.executeQuery();
+            PreparedStatement stNewId = con.prepareStatement(sqlNewId);
+            ResultSet rsNewId = stNewId.executeQuery();
             // 実行結果を格納
-            while (rs2.next()) {
-                newId = (rs2.getInt("最新ID"));
+            while (rsNewId.next()) {
+                newId = (rsNewId.getInt("最新ID"));
             }
             // データベースの切断処理
-            st.close();
+            stCategory.close();
             con.close();
         } catch (Exception e) {
             // エラー処理
             e.printStackTrace();
         }
+        HttpSession session = request.getSession();
         // リクエストスコープに保存
-        request.setAttribute("ctgList", CategoryList);
-        request.setAttribute("newId", newId);
+        session.setAttribute("ctgList", categoryList);
+        session.setAttribute("newId", newId);
         // JSPファイルにリクエストスコープに保存したデータを送信
         RequestDispatcher rd = request.getRequestDispatcher("newProduct.jsp");
         rd.forward(request, response);
     }
 
+    /**
+     *  フォームからデータを取得して、登録するメソッド。
+     */
     protected void doPost(HttpServletRequest request,
             HttpServletResponse response) throws ServletException, IOException {
         // 成功メッセージの変数
@@ -86,12 +94,12 @@ public class NewProduct extends HttpServlet {
         // formからのパラメーターの受け取り
         String productName = null;
         productName = request.getParameter("productName");
-        String CategoryName = null;
-        CategoryName = request.getParameter("CategoryName");
-        String ProductID = request.getParameter("productID");
+        String categoryName = null;
+        categoryName = request.getParameter("CategoryName");
+        String productId = request.getParameter("productID");
         String productCode = request.getParameter("productCode");
         String Price = request.getParameter("Price");
-        String selectedCategoryID = request.getParameter("category");
+        String selectedCategoryId = request.getParameter("category");
         // エラー処理用の配列・変数
         List<String> errorMessage = new ArrayList<String>();
         boolean check = true;
@@ -106,8 +114,8 @@ public class NewProduct extends HttpServlet {
             request.setAttribute("productCode", productCode);
             request.setAttribute("productName", productName);
             request.setAttribute("Price", Price);
-            request.setAttribute("selectedCategoryID", selectedCategoryID);
-            request.setAttribute("CategoryName", CategoryName);
+            request.setAttribute("selectedCategoryID", selectedCategoryId);
+            request.setAttribute("CategoryName", categoryName);
             // JSPファイルに転送
             RequestDispatcher rd = request.getRequestDispatcher(
                     "newProduct.jsp");
@@ -121,17 +129,17 @@ public class NewProduct extends HttpServlet {
             DataSource ds = (DataSource) ic.lookup("java:/comp/env/jdbc");
             Connection con = ds.getConnection();
             // SQL文構築
-            String sql = "INSERT INTO Products "
+            String sqlInsert = "INSERT INTO Products "
                     + " (PRODUCTID,PRODUCTCODE,PRODUCTNAME,PRICE,CATEGORYID)"
                     + " VALUES(?,?,?,?,?)";
 
             // SQLの実行用にSQL文に設定
-            PreparedStatement st = con.prepareStatement(sql);
-            st.setInt(1, Integer.parseInt(ProductID));
+            PreparedStatement st = con.prepareStatement(sqlInsert);
+            st.setInt(1, Integer.parseInt(productId));
             st.setInt(2, Integer.parseInt(productCode));
             st.setString(3, productName);
             st.setInt(4, Integer.parseInt(Price));
-            st.setInt(5, Integer.parseInt(selectedCategoryID));
+            st.setInt(5, Integer.parseInt(selectedCategoryId));
             st.executeUpdate();
             succeed = "登録完了しました";
             // データベースの切断処理
@@ -148,8 +156,8 @@ public class NewProduct extends HttpServlet {
         request.setAttribute("productCode", productCode);
         request.setAttribute("productName", productName);
         request.setAttribute("Price", Price);
-        request.setAttribute("selectedCategoryID", selectedCategoryID);
-        request.setAttribute("CategoryName", CategoryName);
+        request.setAttribute("selectedCategoryID", selectedCategoryId);
+        request.setAttribute("CategoryName", categoryName);
         // JSPファイルに転送
         RequestDispatcher rd = request.getRequestDispatcher("newProduct.jsp");
         rd.forward(request, response);
